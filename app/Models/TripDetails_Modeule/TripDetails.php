@@ -85,6 +85,8 @@ class TripDetails extends Model
     {
         $driver_id = $request['driver_id'];
         $rider_id = $request['rider_id'];
+
+        //if trip not pickup with another driver means its first driver
         if (self::where(self::trip_status_id, 1)->where(self::driver_id, $driver_id)->where(self::rider_id, $rider_id)->first()) {
 
             $UpdateTripStatus = DB::update('update trip_details set trip_status_id = ? where rider_id = ?', [0, $rider_id]);

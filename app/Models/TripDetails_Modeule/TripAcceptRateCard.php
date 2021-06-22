@@ -78,7 +78,6 @@ class TripAcceptRateCard extends Model
             });
             
              return APIResponses::success_result_with_data("Driver Details Find",$driverDetails);
-            
                                 
         }
         else{
