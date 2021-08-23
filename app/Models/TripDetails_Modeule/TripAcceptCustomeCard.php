@@ -44,7 +44,8 @@ class TripAcceptCustomeCard extends Model
         $accept_rate_card = new self();
         if (is_null($request['rider_id']) && is_null($request['trip_id']) && is_null($request['accepted_rate'])) {
             return response()->json([$response = "result" => false, "message" => "id missing"]);
-        } elseif ((is_null($request['booking_status'])))
+        }
+         elseif ((is_null($request['booking_status'])))
             return APIResponses::failed_result("booking_status missing");
 
         $accept_rate_card[self::driver_id] = $request['driver_id'];

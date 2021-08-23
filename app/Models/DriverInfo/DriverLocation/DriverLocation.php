@@ -15,9 +15,13 @@ use PhpParser\Node\Expr\Cast\String_;
 use Psy\Formatter\Formatter;
 use App\Models\DriverInfo\DriverLocation\DriverVehicles;
 use App\Models\DriverInfo\DriverInfoModel;
+use App\Models\Rider\RiderPickupLocation;
 use App\Models\TripDetails_Modeule\TripDetails;
 use GuzzleHttp\Psr7\Request;
 use Illuminate\Support\Facades\DB;
+use phpDocumentor\Reflection\PseudoTypes\True_;
+
+use function PHPUnit\Framework\isEmpty;
 
 class DriverLocation extends Model
 {
@@ -48,23 +52,46 @@ class DriverLocation extends Model
         self::driver_current_long,
         self::driver_current_address,
         self::on_off_status,
-        self::global_vehicle_id
+        self::global_vehicle_id,
     ];
 
+    //update the driver location continuously need driverid,currentLat,currentLng,currentAddress
     public static function insertTheCurrentLatLngForDriver($request)
     {
-        $driver_location = new self();
-        $driver_location[self::driver_current_lat] = $request['current_lat'];
-        $driver_location[self::driver_current_long] = $request['current_long'];
-        $driver_location[self::driver_current_address] = $request['current_address'];
-        $result = $driver_location->save();
-        if ($result) {
-            $message = "Driver current latlng saved";
-            return APIResponses::success_result($message);
+        $driverLocation = new self();
+      
+        if (isset($request[self::driver_id])) {
+
+            if (self::where(self::driver_id, $request[self::driver_id])->first() && self::where(self::on_off_status, 1)->first()) {
+
+                $result = DB::update('update driver_location set driver_current_lat=? , driver_current_long=? ,driver_current_address=? where driver_id=?', [$request[self::driver_current_lat], $request[self::driver_current_long], $request[self::driver_current_address], $request[self::driver_id]]);
+
+                if ($result)
+                    return APIResponses::success_result("Driver Current Location update");
+                else
+                    return APIResponses::failed_result("Driver current location not updated");
+            } else {
+
+                $DriverVehicleData = DriverDetails::getDriverVehicleData($request);
+
+                // return $DriverVehicleData[0][DriverDetails::global_vehicle_id];
+
+                $driverLocation[self::driver_id] = $request[self::driver_id] ?? 0;
+                $driverLocation[self::driver_current_lat] = $request[self::driver_current_lat] ?? 0;
+                $driverLocation[self::driver_current_long] = $request[self::driver_current_long] ?? 0;
+                $driverLocation[self::driver_current_address] = $request[self::driver_current_address] ?? "";
+                $driverLocation[self::on_off_status] = $request[self::on_off_status] ?? 0;
+                $driverLocation[self::driver_vehicle_type_id] = $DriverVehicleData[0][DriverDetails::vehicle_type] ?? 0;
+                $driverLocation[self::driver_global_vehicle_id] = $DriverVehicleData[0][DriverDetails::global_vehicle_id] ?? 0;
+
+                $result = $driverLocation->save();
+                if ($result)
+                    return APIResponses::success_result("Driver new location updated");
+            }
         } else {
-            $message = "Driver current not saved";
-            return APIResponses::failed_result($message);
+            return APIResponses::failed_result("driver location not update. driver id missing");
         }
+        return $request;
     }
 
     public static function findTheDriver($request)
@@ -102,7 +129,7 @@ class DriverLocation extends Model
             $value->TotalDistance = self::totalDistance($value->distance, $value->RiderToDestDistance);
             $value->charges = self::calculateTheCharges($value->vehicle_types, $value->TotalDistance);
             $value->notify = self::notifyToDriver($value->firebase_token);
-            $value->sendData = self::sendDataForTrip($value->driver_id, $rider_id, $rider_current_lat, $rider_current_lng, $rider_dest_lat, $rider_dest_lng, $rider_current_address, $value->charges,"1250");
+          //  $value->sendData = self::sendDataForTrip($value->driver_id, $rider_id, $rider_current_lat, $rider_current_lng, $rider_dest_lat, $rider_dest_lng, $rider_current_address, $value->charges, "1250");
         }
 
         return response()->json([$response = 'result' => true, 'message' => "Get The Driver", "drives" => $LatLng]);
@@ -110,54 +137,84 @@ class DriverLocation extends Model
 
     public static function getDistanceBetweenPoints($lat1, $lon1, $lat2, $lon2)
     {
-        $theta = $lon1 - $lon2;
-        $miles = (sin(deg2rad($lat1)) * sin(deg2rad($lat2))) + (cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta)));
-        $miles = acos($miles);
-        $miles = rad2deg($miles);
-        $miles = $miles * 66 * 1.2525;
-        $feet = $miles * 5280;
-        $yards = $feet / 3;
-        $kilometers = $miles * 1.609344;
-        $kilometers = floor($kilometers);
-        $meters = $kilometers * 1000;
+        $origins = $lat1.','.$lon1; 
+        $destination = $lat2.','.$lon2;
+
+        $url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" . $origins . "&destinations=" . $destination . "&mode=driving&language=it-IT&key=AIzaSyCvT8vf4j7X6p-d21NvnX3qVdAL5xd5wiY";
+               $ch = curl_init();
+               curl_setopt($ch, CURLOPT_URL, $url);
+               curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+               curl_setopt($ch, CURLOPT_PROXYPORT, 3128);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+               $response = curl_exec($ch);
+               curl_close($ch);
+               $response_a = json_decode($response, true);
+              // return $response_a;
+               if (isset($response_a['rows'][0]['elements'][0]['distance']['text'])) {
+                  $m = $response_a['rows'][0]['elements'][0]['distance']['text'];
+               }else{
+                  $m = 0;
+               }
+               
         // return $kilometers;
-        if ($kilometers <= 5) {
-            return $kilometers;
+        if ($m <= 5) {
+            return $m;
         }
     }
 
     public static function getDistanceBetweenRiderToDest($lat1, $lon1, $lat2, $lon2)
     {
-        $theta = $lon1 - $lon2;
-        $miles = (sin(deg2rad($lat1)) * sin(deg2rad($lat2))) + (cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta)));
-        $miles = acos($miles);
-        $miles = rad2deg($miles);
-        $miles = $miles * 66 * 1.2525;
-        $feet = $miles * 5280;
-        $yards = $feet / 3;
-        $kilometers = $miles * 1.609344;
-        $kilometers = floor($kilometers);
-        $meters = $kilometers * 1000;
-        return $kilometers;
+        $origins = $lat1.','.$lon1; 
+        $destination = $lat2.','.$lon2;
+
+        $url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" . $origins . "&destinations=" . $destination . "&mode=driving&language=it-IT&key=AIzaSyCvT8vf4j7X6p-d21NvnX3qVdAL5xd5wiY";
+               $ch = curl_init();
+               curl_setopt($ch, CURLOPT_URL, $url);
+               curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+               curl_setopt($ch, CURLOPT_PROXYPORT, 3128);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+               $response = curl_exec($ch);
+               curl_close($ch);
+               $response_a = json_decode($response, true);
+              // return $response_a;
+               if (isset($response_a['rows'][0]['elements'][0]['distance']['text'])) {
+                  $m = $response_a['rows'][0]['elements'][0]['distance']['text'];
+               }else{
+                  $m = 0;
+               }
+               
+              return $m;
     }
 
     public static function getDistanceBetweenRiderToDriver($lat1, $lon1, $lat2, $lon2, $driver_id)
     {
-        $theta = $lon1 - $lon2;
-        $miles = (sin(deg2rad($lat1)) * sin(deg2rad($lat2))) + (cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta)));
-        $miles = acos($miles);
-        $miles = rad2deg($miles);
-        $miles = $miles * 66 * 1.2525;
-        $feet = $miles * 5280;
-        $yards = $feet / 3;
-        $kilometers = $miles * 1.609344;
-        $kilometers = floor($kilometers);
-        $meters = $kilometers * 1000;
-        if ($kilometers <= 5 || $kilometers == 0) {
-            $result = ["driver_id" => $driver_id];
-            return ($driver_id);
-        }
+        
+        $origins = $lat1.','.$lon1; 
+        $destination = $lat2.','.$lon2;
 
+        $url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" . $origins . "&destinations=" . $destination . "&mode=driving&language=it-IT&key=AIzaSyCvT8vf4j7X6p-d21NvnX3qVdAL5xd5wiY";
+               $ch = curl_init();
+               curl_setopt($ch, CURLOPT_URL, $url);
+               curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+               curl_setopt($ch, CURLOPT_PROXYPORT, 3128);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+               $response = curl_exec($ch);
+               curl_close($ch);
+               $response_a = json_decode($response, true);
+              // return $response_a;
+               if (isset($response_a['rows'][0]['elements'][0]['distance']['text'])) {
+                  $m = $response_a['rows'][0]['elements'][0]['distance']['text'];
+               }else{
+                  $m = 0;
+               }
+               
+               if($m <=5){
+                   return $driver_id;
+               }
+     
     }
 
     public static function calculateTheCharges($driver_vehicle, $distance)
@@ -188,39 +245,54 @@ class DriverLocation extends Model
     {
         return NotificationToDriver::notifyToDriver($token);
     }
-    public static function sendDataForTrip($driver_id, $rider_id, $rider_current_lat, $rider_current_lng, $rider_dest_lat, $rider_dest_lng, $rider_current_address, $trip_rate, $trip_id)
+    public static function sendDataForTrip($driver_id, $rider_id, $rider_current_lat, $rider_current_lng, $rider_dest_lat, $rider_dest_lng, $rider_current_address,$rider_drop_address, $trip_rate, $trip_id)
     {
+        
 
         $trip_details = new TripDetails();
         $trip_details[TripDetails::trip_driver_id] = $driver_id;
         $trip_details[TripDetails::trip_rider_id] = $rider_id;
-        $trip_details[TripDetails::trip_rider_current_lat] = $rider_current_lat;
-        $trip_details[TripDetails::trip_rider_current_lng] = $rider_current_lng;
+        $trip_details[TripDetails::trip_rider_current_lat] = $rider_current_lat ??0;
+        $trip_details[TripDetails::trip_rider_current_lng] = $rider_current_lng ??0;
 
-        $trip_details[TripDetails::trip_rider_dest_lat] = $rider_dest_lat;
-        $trip_details[TripDetails::trip_rider_dest_lng] = $rider_dest_lng;
-        $trip_details[TripDetails::trip_rider_current_address] = $rider_current_address;
+        $trip_details[TripDetails::trip_rider_dest_lat] = $rider_dest_lat ??0;
+        $trip_details[TripDetails::trip_rider_dest_lng] = $rider_dest_lng ?? 0;
+        $trip_details[TripDetails::trip_rider_current_address] = $rider_current_address ?? "";
+        $trip_details[TripDetails::trip_rider_drop_address] = $rider_drop_address ?? "";
         $trip_details[TripDetails::trip_trip_rate] = $trip_rate;
         $trip_details[TripDetails::trip_trip_id] = $trip_id;
         $trip_details[TripDetails::trip_trip_status_id] = 1;
 
         $dataChecker = $trip_details->save();
 
-        if ($dataChecker) {
-            return response()->json([$response = 'result' => true, 'message' => "trip saved"]);
-        } else {
-            return response()->json([$response = 'result' => false, 'message' => "data not saved"]);
-        }
+        // if ($dataChecker) {
+        //     return response()->json([$response = 'result' => true, 'message' => "trip saved",'tripData'=>$trip_id]);
+        // } else {
+        //     return response()->json([$response = 'result' => false, 'message' => "data not saved"]);
+        // }
     }
+
+    //show a all drivers when rider select a global vehicle . all driver should be in 5km radius
     public static function showAllDriver($request)
-    {
-        $rider_current_lat = $request['rider_current_lat'];
-        $rider_current_lng = $request['rider_current_lng'];
+    {   
+        $riderPickupLocation = RiderPickupLocation::getRiderLocationContinuously($request);
+     //  return $riderPickupLocation;
+        // return $riderPickupLocation[0][RiderPickupLocation::rider_pickup_address];
+
+        if($riderPickupLocation->isEmpty()){
+            return APIResponses::failed_result("Rider pickup address missing");
+        }
+        
+        $rider_current_lat = $riderPickupLocation[0][RiderPickupLocation::rider_pickup_lat];
+        $rider_current_lng = $riderPickupLocation[0][RiderPickupLocation::rider_pickup_long];
+        $rider_current_address = $riderPickupLocation[0][RiderPickupLocation::rider_pickup_address];
+
+      
         $rider_dest_lat = $request['rider_dest_lat'];
         $rider_dest_lng = $request['rider_dest_lng'];
-        $rider_current_address = $request['rider_current_address'];
         $rider_id = $request['rider_id'];
         $vehicle_type_id = $request['vehicle_type_id'];
+        $rider_drop_address = $request['rider_drop_address'];
 
         $driverLocation = self::select(
             self::driver_current_lat,
@@ -231,31 +303,44 @@ class DriverLocation extends Model
             ->join(DriverDetails::driverinfo, self::driver_id, DriverDetails::driver_id)
             ->where(self::driver_global_vehicle_id, $vehicle_type_id)
             ->get();
+
+           // return $driverLocation;
         foreach ($driverLocation as $value) {
 
-            $point1 = array('lat' => $value->driver_current_lat, 'long' => -$value->driver_current_long);
-            $point2 = array('lat' => $rider_current_lat, 'long' => -$rider_current_lng);
+            $point1 = array('lat' => $value->driver_current_lat, 'long' => $value->driver_current_long);
+            $point2 = array('lat' => $rider_current_lat, 'long' => $rider_current_lng);
             $value->distance = self::getDistanceBetweenRiderToDriver($point1['lat'], $point1['long'], $point2['lat'], $point2['long'], $value->driver_id);
             $value->notify = self::notifyToDriver($value->firebase_token);
         }
-       // return $driverLocation;
+  
+     //  return $driverLocation;
+        $DriverDetails = array();
+       
         $DriverDetails = $driverLocation;
+        $obj = json_decode (json_encode($DriverDetails), True);
+       
+       // return ($obj);
 
-      //  return $DriverDetails;
 
-        $newDataArray = array();
-        foreach ($DriverDetails as $values) {
+       $newDataArray = array();
+       foreach($obj as $key=>$value){
+          if($value["distance"]!=null){
+            //   print_r($value["driver_current_lat"]);
+             $newDataArray[] = $value;
+          }
+       }
+        
+     //  return $newDataArray;
 
-            if ($values['distance'] != null)
-                $newDataArray[] = $values;
-        }
-        foreach ($newDataArray as $key => $newValue) {
-            $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+         $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             $pin = mt_rand(1000000, 9999999)
                 . mt_rand(1000000, 9999999)
                 . $characters[rand(0, strlen($characters) - 1)];
             $trip_id = str_shuffle($pin);
-           $newValue->saveTrip = self::sendDataForTrip(($newValue['driver_id']), $rider_id, $rider_current_lat, $rider_current_lng, $rider_dest_lat, $rider_dest_lng, $rider_current_address, $request['trip_rate'],$trip_id);
+
+        foreach ($newDataArray as $key => $newValue) {
+           
+          $newValue["saveTrip"] = self::sendDataForTrip(($newValue['driver_id']), $rider_id, $rider_current_lat, $rider_current_lng, $rider_dest_lat, $rider_dest_lng, $rider_current_address,$rider_drop_address, $request['trip_rate'], $trip_id);
         }
 
         return response()->json([$response = 'result' => true, 'message' => "trip saved"]);
@@ -274,5 +359,9 @@ class DriverLocation extends Model
             ->join(DriverDetails::driverinfo, self::driver_id, DriverDetails::driver_id)
             ->where(self::driver_id, $driverDetail[self::driver_id])
             ->get();
+    }
+
+    public static function getDriverCurrentLatLng($request){
+        return self::select(self::driver_current_lat,self::driver_current_long)->where(self::driver_id,$request[self::driver_id])->get();
     }
 }

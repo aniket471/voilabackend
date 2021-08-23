@@ -6,6 +6,7 @@ use App\Models\Common\APIResponses;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Common\AppConfig;
+use App\Models\Rider\RiderLogin;
 use Illuminate\Support\Facades\DB;
 
 class DriverDetails extends Model
@@ -25,6 +26,8 @@ class DriverDetails extends Model
     const vehicle_type = 'vehicle_type';
     const api_token = 'api_token';
     const firebase_token = 'firebase_token';
+    const driver_ratings = 'driver_ratings';
+    const global_vehicle_id = 'global_vehicle_id';
 
     
     const driver_driverinfo_all =self::driverinfo . AppConfig::DOT . AppConfig::STAR;
@@ -41,6 +44,8 @@ class DriverDetails extends Model
     const driver_vehicle_type = self::driverinfo . AppConfig::DOT . self::vehicle_type;
     const driver_api_token = self::driverinfo . AppConfig::DOT . self::api_token;
     const driver_firebase_token = self::driverinfo . AppConfig::DOT . self::firebase_token;
+    const driver_driver_ratings = self::driverinfo . AppConfig::DOT . self::driver_ratings;
+    const driver_global_vehicle_id = self::driverinfo . AppConfig::DOT  . self::global_vehicle_id;
 
     protected $table = self::driverinfo;
     protected $primaryKey=self::id;
@@ -58,7 +63,9 @@ class DriverDetails extends Model
         self::make_year,
         self::vehicle_type,
         self::api_token,
-        self::firebase_token
+        self::firebase_token,
+        self::driver_ratings,
+        self::global_vehicle_id,
     ];
 
     public static function driverRegistration($request){
@@ -105,4 +112,46 @@ class DriverDetails extends Model
         }
     }
 
+    public static function updateTheDriverRatings($request){
+
+        $getRatings = self::select(self::driver_ratings)->where(self::id,$request['driver_id'])->get();
+
+        $addNewRating = $getRatings[0]["driver_ratings"] + $request[self::driver_ratings];
+    
+        $updateRatings = DB::update('update driverinfo set driver_ratings=? where id=?',[$addNewRating,$request['driver_id']]);
+
+        if($updateRatings){
+            return 1;
+        }
+        else{
+            return 0;
+        }
+    }
+
+    //driver rating need driver_id
+    public static function getADriverRating($request){
+
+       // PlaceRating::where('place_id',$id)->selectRaw('SUM(rating)/COUNT(user_id) AS avg_rating')->first()->avg_rating;
+        $driverRating = self::where(self::id,$request["driver_id"])->pluck(self::driver_ratings)->avg();
+        $rateArray =[];
+        foreach ($driverRating as $rate)
+        {
+            $rateArray[]= $rate['driver_ratings'];
+        }
+
+         $sum = array_sum($rateArray);
+         $result = $sum/count($rateArray);
+
+        return $result;
+    }
+
+    public static function getDriverVehicleData($request){
+
+        return self::select(self::vehicle_type,self::global_vehicle_id)->where(self::id,$request["driver_id"])->get();
+    }
+
+      //if the login is driver then update the fcm token
+     public static function updateFCMToken($firebase_token,$mobile_number){
+        DB::update('update driverinfo set firebase_token=? where phone_number=?',[$firebase_token,$mobile_number]);
+    }
 }

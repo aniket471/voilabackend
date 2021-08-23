@@ -19,5 +19,8 @@ class RiderLoginController extends Controller
       return RiderLogin::verifyTheOtp($request);
     }
 
+    public static function checkUserLoginSession(Request $request){
+      return RiderLogin::checkUserLoginSession($request);
+    }
 
 }

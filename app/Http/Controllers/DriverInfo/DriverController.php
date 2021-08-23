@@ -31,7 +31,13 @@ class DriverController extends Controller
     return NotificationToDriver::notifyToDriver($request);
  }
 
+    //get a all global vehicles which is in currently present in riders 5km radius with rate 
  public static function getVehicle(Request $request){
      return DriverVehicles::getVehicle($request);
+ }
+
+ //this api only for ios
+ public static function getVehicles(Request $request){
+     return DriverVehicles::getVehicles($request);
  }
 }

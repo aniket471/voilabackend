@@ -184,22 +184,31 @@ class DriverVehicles extends Model
     }
     public static function distanceBetweenDriverToRider($lat1, $lon1, $lat2, $lon2, $driver_id)
     {
+        $origins = $lat1.','.$lon1; 
+        $destination = $lat2.','.$lon2;
 
-        $theta = $lon1 - $lon2;
-        $miles = (sin(deg2rad($lat1)) * sin(deg2rad($lat2))) + (cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta)));
-        $miles = acos($miles);
-        $miles = rad2deg($miles);
-        $miles = $miles * 66 * 1.2525;
-        $feet = $miles * 5280;
-        $yards = $feet / 3;
-        $kilometers = $miles * 1.609344;
-        $kilometers = floor($kilometers);
-        $meters = $kilometers * 1000;
-        // return $kilometers;
-        if ($kilometers <= 5 || $kilometers === 0) {
+        $url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" . $origins . "&destinations=" . $destination . "&mode=driving&language=it-IT&key=AIzaSyCvT8vf4j7X6p-d21NvnX3qVdAL5xd5wiY";
+               $ch = curl_init();
+               curl_setopt($ch, CURLOPT_URL, $url);
+               curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+               curl_setopt($ch, CURLOPT_PROXYPORT, 3128);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+               $response = curl_exec($ch);
+               curl_close($ch);
+               $response_a = json_decode($response, true);
+              // return $response_a;
+               if (isset($response_a['rows'][0]['elements'][0]['distance']['text'])) {
+                  $m = $response_a['rows'][0]['elements'][0]['distance']['text'];
+               }else{
+                  $m = 0;
+               }
+               
+               if($m <=5){
+                return $driver_id;
+               }
+                   
 
-            return $driver_id;
-        }
     }
 
     public static function getMinRate($driver_id)
@@ -209,9 +218,14 @@ class DriverVehicles extends Model
             ->get();
     }
 
-
+    //get a all global vehicles which is in currently present in riders 5km radius with rate
     public static function getVehicle($request)
     {
+      
+        $rider_current_lat = $request["rider_current_lat"];
+        $rider_current_lng = $request["rider_current_lng"];
+        $rider_dest_lat = $request["rider_dest_lat"];
+        $rider_dest_lng = $request["rider_dest_lng"];
 
         $getVId = DriverLocation::select(
             DriverLocation::driver_driver_current_lat,
@@ -228,27 +242,18 @@ class DriverVehicles extends Model
         $newData = array();
         $minRateArray = array();
         $maxRateArray = array();
-                    
+
         foreach ($getVId as $key => $value) {
-            $point1 = array('lat' => $request['rider_current_lat'], 'long' => -$request['rider_current_lng']);
-            $point3 = array('lat' => $value->driver_current_lat, 'long' => -$value->driver_current_long);
+            $point1 = array('lat' => $rider_current_lat, 'long' => $rider_current_lng);
+            $point3 = array('lat' => $value->driver_current_lat, 'long' => $value->driver_current_long);
             $value->distance = self::distanceBetweenDriverToRider($point1['lat'], $point1['long'], $point3['lat'], $point3['long'], $value->driver_id);
         }
+        return $getVId;
+       
         $gh = $getVId;
-
+        $small = array();
         foreach ($gh as $key => $v) {
             if ($v->distance !== null) {
-
-                // $v->hj  = DriverRateCard::select(
-                //     DriverRateCard::driver_min_rate,
-                //     DriverLocation::driver_global_vehicle_id,
-                //     DriverLocation::driver_driver_id,
-                //     DriverRateCard::driver_max_rate
-                // )
-                //     ->join(DriverLocation::driver_location, DriverRateCard::driver_driver_id, DriverLocation::driver_driver_id)
-                //     ->where(DriverRateCard::driver_driver_id, $v->driver_id)
-                //     ->where(DriverLocation::driver_driver_id,$v->driver_id)
-                //     ->get();
 
                 $newData[] = $v;
                 $temp = array_unique(array_column($newData, 'global_vehicle_id'));
@@ -256,52 +261,200 @@ class DriverVehicles extends Model
                 $small[]['ve'] = $v->global_vehicle_id;
                // $small[]['ve'] = $v->driver_id;
                $driver_ids[]["driver_id"]  = $v->driver_id;
-
             }
-
-           
         }
         $fillArray = array_filter(($small));
         //return $fillArray;
         $vehicleType2Avail = 0 ;
         foreach($fillArray as $key => $vf){
-            if($vf['ve']  ==1){
-            $vehicleType1Avail = "1";
-            }
-            elseif($vf['ve'] ===2){
-            $vehicleType2Avail = "2";
-            }           
-        } 
+  
+           if($vf['ve']  ==1){
+           $vehicleType1Avail = "1";
+           }
+           elseif($vf['ve'] ===2){
+           $vehicleType2Avail = "2";
+           }
+        }
 
         // return array($vehicleType1Avail,$vehicleType2Avail);
 
+        $result = array();
+        $mina = 0;
+        $carMin = 0;
+        $max=0;
+        $carMax=0;
+
         foreach ($newData as $key => $values) {
-            if ($values->global_vehicle_id === 1)
+            if ($values->global_vehicle_id === 1){
                 $minRateArray[] = ($values->min_rate);
-            $maxRateArray[] = ($values->max_rate);
-            $mina = min($minRateArray);
-            $max = max($maxRateArray);
+               
+                $maxRateArray[] = ($values->max_rate);
+                $mina = min($minRateArray);
+                $max = max($maxRateArray);
+            }
+            if ($values->global_vehicle_id === 2){
 
-            if ($values->global_vehicle_id === 2)
-            $carMinRate = array();
-            $carMaxRate = array();
-            $carMinRate[] = ($values->min_rate);
-            $carMaxRate[] = ($values->max_rate);
-            $carMin = min(($carMinRate));
-            $carMax = max($carMaxRate);
-            $vehicleTypeID[] = $values->global_vehicle_id;
+                $carMinRate = array();
+                $carMaxRate = array();
+                $carMinRate[] = ($values->min_rate);
+                $carMaxRate[] = ($values->max_rate);
+                $carMin = min(($carMinRate));
+                $carMax = max($carMaxRate);
+                $vehicleTypeID[] = $values->global_vehicle_id;
+            }
 
-            $rider_current_lat =$request['rider_current_lat'];
-            $rider_current_lng = $request['rider_current_lng'];
-            $rider_dest_lat = $request['rider_dest_lat'];
-            $rider_dest_lng = $request['rider_dest_lng'];
             $result = ["min"=>$mina,"max"=>$max,"carMin"=>$carMin,"carMax"=>$carMax, "rider_current_lat"=>$rider_current_lat,
                         "rider_current_lng"=>$rider_current_lng,"rider_dest_lat"=>$rider_dest_lat,
                         "vehicle"=>$vehicleType1Avail,
                         "secondVehicle"=>$vehicleType2Avail,
-                        "rider_dest_lng"=>$rider_dest_lng ,"vehicleTyep" =>($small)];
+                        "rider_dest_lng"=>$rider_dest_lng];
         }
         return response()->json([$response = 'result'=>true,'message'=>"Vehicle","vehicleData"=>array($result)]);
 
+    }
+
+    //this api for IOS 
+    public static function getVehicles($request){
+        $rider_current_lat = $request["rider_current_lat"];
+        $rider_current_lng = $request["rider_current_lng"];
+        $rider_dest_lat = $request["rider_dest_lat"];
+        $rider_dest_lng = $request["rider_dest_lng"];
+
+        $getVId = DriverLocation::select(
+            DriverLocation::driver_driver_current_lat,
+            DriverLocation::driver_driver_current_long,
+            DriverLocation::driver_global_vehicle_id,
+            DriverLocation::driver_driver_id,
+            DriverRateCard::driver_min_rate,
+            DriverRateCard::driver_max_rate
+        )
+            ->join(DriverRateCard::driver_rate_card, DriverLocation::driver_driver_id, DriverRateCard::driver_driver_id)
+            ->where(DriverLocation::driver_on_off_status, 1)
+            ->get();
+
+        $newData = array();
+        $minRateArray = array();
+        $maxRateArray = array();
+
+        foreach ($getVId as $key => $value) {
+            $point1 = array('lat' => $rider_current_lat, 'long' => $rider_current_lng);
+            $point3 = array('lat' => $value->driver_current_lat, 'long' => $value->driver_current_long);
+            $value->distance = self::distanceBetweenDriverToRider($point1['lat'], $point1['long'], $point3['lat'], $point3['long'], $value->driver_id);
+        }
+        //return $getVId;
+        $gh = $getVId;
+        $small = array();
+        foreach ($gh as $key => $v) {
+            if ($v->distance !== null) {
+
+                $newData[] = $v;
+                $temp = array_unique(array_column($newData, 'global_vehicle_id'));
+                $unique_arr = array_intersect_key($newData, $temp);
+                $small[]['ve'] = $v->global_vehicle_id;
+               // $small[]['ve'] = $v->driver_id;
+               $driver_ids[]["driver_id"]  = $v->driver_id;
+            }
+        }
+        $fillArray = array_filter(($small));
+        //return $fillArray;
+        $vehicleType2Avail = 0 ;
+        foreach($fillArray as $key => $vf){
+  
+           if($vf['ve']  ==1){
+           $vehicleType1Avail = "1";
+           }
+           elseif($vf['ve'] ===2){
+           $vehicleType2Avail = "2";
+           }
+        }
+
+        // return array($vehicleType1Avail,$vehicleType2Avail);
+
+        $result = array();
+        $mina = 0;
+        $carMin = 0;
+        $max=0;
+        $carMax=0;
+
+        foreach ($newData as $key => $values) {
+            if ($values->global_vehicle_id === 1){
+                $minRateArray[] = ($values->min_rate);
+               
+                $maxRateArray[] = ($values->max_rate);
+                $mina = min($minRateArray);
+                $max = max($maxRateArray);
+            }
+            if ($values->global_vehicle_id === 2){
+
+                $carMinRate = array();
+                $carMaxRate = array();
+                $carMinRate[] = ($values->min_rate);
+                $carMaxRate[] = ($values->max_rate);
+                $carMin = min(($carMinRate));
+                $carMax = max($carMaxRate);
+                $vehicleTypeID[] = $values->global_vehicle_id;
+            }
+
+            
+            $auto = array();
+            $auto = [$auto ="min"=>strval($mina),"max"=>strval($max)];
+
+            $cab = array();
+            $cab = [$cab = "carMin"=>strval($carMin),"carMax"=>strval($carMax)];
+
+            if(!$mina>0 && !$max > 0){
+
+                $result = [ "rider_current_lat"=>$rider_current_lat,
+                "rider_current_lng"=>$rider_current_lng,"rider_dest_lat"=>$rider_dest_lat,
+                "rider_dest_lng"=>$rider_dest_lng,
+                "auto"=>[],
+                "cab"=>array($cab)];
+            }
+            if(!$carMin > 0 && !$carMax > 0){
+               // $cab = [];
+               $result = [ "rider_current_lat"=>$rider_current_lat,
+               "rider_current_lng"=>$rider_current_lng,"rider_dest_lat"=>$rider_dest_lat,
+               "rider_dest_lng"=>$rider_dest_lng,
+               "auto"=>array($auto),
+               "cab"=>[]];
+            }
+            else{
+
+                $result = [ "rider_current_lat"=>$rider_current_lat,
+                "rider_current_lng"=>$rider_current_lng,"rider_dest_lat"=>$rider_dest_lat,
+                "rider_dest_lng"=>$rider_dest_lng,
+                "auto"=>array($auto),
+                "cab"=>array($cab)];
+            }
+        }
+
+
+        return response()->json([$response = 'result'=>true,'message'=>"Vehicle","vehicleData"=>array($result)]);
+
+    }
+
+    public static function routeChangedCalculate($lat1, $lon1, $lat2, $lon2)
+    {
+
+        $origins = $lat1.','.$lon1; 
+        $destination = $lat2.','.$lon2;
+
+        $url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" . $origins . "&destinations=" . $destination . "&mode=driving&language=it-IT&key=AIzaSyCvT8vf4j7X6p-d21NvnX3qVdAL5xd5wiY";
+               $ch = curl_init();
+               curl_setopt($ch, CURLOPT_URL, $url);
+               curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+               curl_setopt($ch, CURLOPT_PROXYPORT, 3128);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+               curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+               $response = curl_exec($ch);
+               curl_close($ch);
+               $response_a = json_decode($response, true);
+              // return $response_a;
+               if (isset($response_a['rows'][0]['elements'][0]['distance']['text'])) {
+                  $m = $response_a['rows'][0]['elements'][0]['distance']['text'];
+               }else{
+                  $m = 0;
+               }
+               return $m;
     }
 }

@@ -12,6 +12,7 @@ class TripDetailController extends Controller
 {
 
 
+    //accept trip first time means its temp accept
     public static function acceptTripForTemp(Request $request){
         return TripDetails::acceptTripForTemp($request);
     }
@@ -24,6 +25,7 @@ class TripDetailController extends Controller
         return TripAcceptCustomeCard::acceptBookingWithCustomCard($request);
     }
 
+     //check new trip for driver 
     public static function checkTheTripStatus(Request $request){
         return TripDetails::checkTheTripStatus($request);
     }
