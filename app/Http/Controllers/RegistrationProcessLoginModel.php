@@ -20,6 +20,7 @@ class RegistrationProcessLoginModel extends Model
     const  api_token = 'api_token';
     const  fcm_token = 'fcm_token';
     const  auth_token = 'auth_token';
+    const otp = 'otp';
 
     const registration_process_login_all = self::registration_process_login . AppConfig::DOT . AppConfig::STAR;
     const registration_user_id = self::registration_process_login . AppConfig::DOT . self::id;
@@ -27,13 +28,15 @@ class RegistrationProcessLoginModel extends Model
     const registration_api_token = self::registration_process_login . AppConfig::DOT . self::api_token;
     const registration_fcm_token = self::registration_process_login . AppConfig::DOT . self::fcm_token;
     const registration_auth_token = self::registration_process_login . AppConfig::DOT . self::auth_token;
+    const registration_otp = self::registration_process_login . AppConfig::DOT . self::otp;
 
     protected $table = self::registration_process_login;
     protected $fillable = [
         self::mobile_number,
         self::api_token,
         self::fcm_token,
-        self::auth_token
+        self::auth_token,
+        self::otp
     ];
 
     public $timestamps = true;

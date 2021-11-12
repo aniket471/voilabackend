@@ -27,6 +27,10 @@ use App\Models\Saved_Placed_Creation\SavedPlaces;
 use App\Http\Controllers\VehicleIconCreationModule\VehicleIconController;
 use App\Http\Controllers\Food_Registartion_Creation\FoodRegistrationController;
 use App\Http\Controllers\RequiredDocs_Creation\RequiredDocsController;
+use App\Http\Controllers\CommonImageCreation\CommonImageController;
+use App\Http\Controllers\AppUpdate\AppUpdateController;
+use App\Http\Controllers\RateCardCreation\RateCardController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -219,10 +223,16 @@ Route::middleware('auth:app_external')->group(function(){
 Route::middleware('auth:app_external')->group(function(){
     Route::post('addNewRestaurantOwner',[FoodRegistrationController::class , 'addNewRestaurantOwner']);
     Route::post('addNewRestaurantProfileInfo', [FoodRegistrationController::class , 'addNewRestaurantProfileInfo']);
-    Route::post('addRestaurantProfile',[FoodRegistrationController::class , 'addRestaurantProfile']);
-    Route::post('addNewDish',[FoodRegistrationController::class,'addNewDish']);
     Route::get('getAllDishDetails',[FoodRegistrationController::class , 'getAllDishDetails']);
+    Route::get('isRestaurantAccountVerify',[FoodRegistrationController::class,'isRestaurantAccountVerify']);
+    Route::post('removeDishFromRestaurant',[FoodRegistrationController::class,'removeDishFromRestaurant']);
+
+    Route::post('updateResaturantOwnerInformation',[FoodRegistrationController::class,'updateResaturantOwnerInformation']);
+    Route::post('updateRestaurantInformation',[FoodRegistrationController::class,'updateRestaurantInformation']);
+    Route::post('updateRestaurantProfile',[FoodRegistrationController::class,'updateRestaurantProfile']);
 });
+Route::post('addNewDish',[FoodRegistrationController::class,'addNewDish']);
+Route::post('addRestaurantProfile',[FoodRegistrationController::class , 'addRestaurantProfile']);
 
 //driver registration request personal , address details, kyc-details, vehicle-details,
 Route::middleware('auth:app_external')->group(function(){
@@ -230,20 +240,50 @@ Route::middleware('auth:app_external')->group(function(){
     Route::post('addAddressDetails',[FoodRegistrationController::class,'addAddressDetails']);
     Route::post('addKYCDetails',[FoodRegistrationController::class,'addKYCDetails']);
     Route::post('addVehicleDetails',[FoodRegistrationController::class ,'addVehicleDetails']);
+    Route::post('addDriverVehicleDetails',[FoodRegistrationController::class,'addDriverVehicleDetails']);
     Route::post('addVehicleProfilePicture',[FoodRegistrationController::class, 'addVehicleProfilePicture']);
+
+    Route::post('updateAddressInformation',[FoodRegistrationController::class,'updateAddressInformation']);
+    Route::post('updatePersonalInformation',[FoodRegistrationController::class,'updatePersonalInformation']);
+    Route::post('updateVehicleInformation',[FoodRegistrationController::class,'updateVehicleInformation']);
+
+});
+
+Route::post('updateKYCDetails',[FoodRegistrationController::class,'updateKYCDetails']);
+Route::post('updateVehicleDocument',[FoodRegistrationController::class,'updateVehicleDocument']);
+
+//get all menu of restaurant
+Route::middleware('auth:app_external')->group(function(){
+ Route::get('getAllMenus',[FoodRegistrationController::class, 'getAllMenus']);
+});
+
+//dish required docs
+Route::middleware('auth:app_external')->group(function(){
+    Route::post('addNewDishDocs',[FoodRegistrationController::class,'addNewDishDocs']);
+    Route::get('getDishRequiredDocs',[FoodRegistrationController::class,'getDishRequiredDocs']);
+    Route::get('getAllDocTypeAndInfo',[FoodRegistrationController::class,'getAllDocTypeAndInfo']);
 });
 
 //check registration process driver and food restaurant
 Route::middleware('auth:app_external')->group(function(){
     Route::get('driverRegistrationProcess',[FoodRegistrationController::class , 'driverRegistrationProcess']);
     Route::get('restaurantRegistrationProcess',[FoodRegistrationController::class,'restaurantRegistrationProcess']);
+
+    //driver 
+    Route::get('getAllRequestedInfo',[FoodRegistrationController::class,'getAllRequestedInfo']);
+    //retsaurant
+    Route::get('getAllRestaurantRequestedInfo',[FoodRegistrationController::class,'getAllRestaurantRequestedInfo']);
 });
 
 
 
+// ---------------------------------------  RATE CARD MODEULE --------------------------------  
+Route::get('getSystemRates', [RateCardController::class, 'getSystemRates']);
+Route::post('createCustomeRateCard', [RateCardController::class, 'createCustomeRateCard']);
+Route::post('getDriverVehicleInfo', [RateCardController::class, 'getDriverVehicleInfo']);
 
 
-
+Route::get('getKYCRequestdInfo',[FoodRegistrationController::class, 'getKYCRequestdInfo']);
 
 
 
@@ -289,6 +329,31 @@ Route::post('getImage',[ImageController::class,'getImage']);
 Route::post('storeVehicleTypeWiseImage',[VehicleIconController::class,'storeVehicleTypeWiseImage']);
 Route::get('getVehicleTypeWiseImage',[VehicleIconController::class,'getVehicleTypeWiseImage']);
 
+// get restaurant images 
+Route::get('getRestaurantProfilePic',[FoodRegistrationController::class, 'getRestaurantProfilePic']);
 
-    
+// --------------------------------------------------  ADD COMMON IMAGE -------------------------------------------//
 
+Route::middleware('auth:app_external')->group(function(){
+
+    Route::post('addCommonImage',[CommonImageController::class ,'addCommonImage']);
+    Route::get('getCommonImageForAccountUnderReview',[CommonImageController::class,'getCommonImageForAccountUnderReview']);
+
+});
+
+// ---------------------------------------- FILTER OPTION ---------------------------------------------- //
+Route::middleware('auth:app_external')->group(function(){
+
+    Route::post('addNewFilterOptions',[CommonImageController::class, 'addNewFilterOptions']);
+    Route::get('getAllFilterOption',[CommonImageController::class , 'getAllFilterOption']);
+});
+//get dish with filter option
+Route::middleware('auth:app_external')->group(function(){
+Route::post('getDishWithFilter',[CommonImageController::class ,'getDishWithFilter']);
+});
+
+
+
+
+//---------------------------------------   APP UPDATE ----------------------------------//
+Route::post('addNewBuild',[AppUpdateController::class,'addNewBuild']);

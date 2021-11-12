@@ -15,17 +15,20 @@ class DriverRegistrationRequiredDocsModel extends Model
     const driver_registration_required_docs = 'driver_registration_required_docs';
     const required_docs_name = 'required_docs_name';
     const required_docs_type = 'required_docs_type';
+    const required_docs_input = 'required_docs_input';
     const status = 'status';
 
     const driver_registration_required_docs_all = self::driver_registration_required_docs . AppConfig::DOT . AppConfig::STAR;
     const driver_required_docs_name = self::driver_registration_required_docs . AppConfig::DOT . self::required_docs_name;
     const driver_required_docs_type = self::driver_registration_required_docs . AppConfig::DOT . self::required_docs_type;
+    const driver_required_docs_input = self::driver_registration_required_docs . AppConfig::DOT . self::required_docs_input;
     const driver_status = self::driver_registration_required_docs . AppConfig::DOT . self::status;
 
     protected $table = self::driver_registration_required_docs;
     protected $fillable = [
         self::required_docs_name,
         self::required_docs_type,
+        self::required_docs_input,
         self::status
     ];
 
@@ -47,7 +50,7 @@ class DriverRegistrationRequiredDocsModel extends Model
     //get docs
     public static function getDriverRequiredDocs(){
 
-        return self::select(self::required_docs_name,self::required_docs_type)->where(self::status,1)->get();
+        return self::select(self::required_docs_name,self::required_docs_type,self::required_docs_input)->where(self::status,1)->get();
     }
 
     //get all required Documents
@@ -72,8 +75,10 @@ class DriverRegistrationRequiredDocsModel extends Model
         $driverRegistrationDetails = self::getDriverRequiredDocs();
         $driverAddressDocsDetails = DriverAddressRequiredDocs::getDriverAddressRequiredDocs();
         $driverKYCDocsDetails = DriverKYCRequiredDocsModel::getDriverKYCRequiredDocs();
-        $driverVehicleDetails = DriverVehicleRequiredDocsModel::getDriverVehicleRequiredDocs();
+       // $driverVehicleDetails = DriverVehicleRequiredDocsModel::getDriverVehicleRequiredDocs();
+       $driverVehicleDetails = DriverVehicleRequiredDocsModel::getDocsByImageType();
 
+        
         $data = ["driver_details_required_docs"=>$driverRegistrationDetails,"driver_address_required_docs"=>$driverAddressDocsDetails,
                  "driver_kyc_required_docs"=>$driverKYCDocsDetails, "driver_vehicle_required_docs"=>$driverVehicleDetails];
 
@@ -91,7 +96,10 @@ class DriverRegistrationRequiredDocsModel extends Model
 
         $msg = "For Restaurant Registration Required Document";
 
+        $name = "Restaurant Indoor Photo & Restaurant OutDoor Photo";
+        $name2 = "Restaurant Licence Photo";
         $data = ["restaurant_owner_required_docs"=>$restaurantOwnerRequiredDocs,"restaurant_details_required_docs"=>$restaurantDetailsRequiredDocs];
+
 
         return response()->json([$response = "result"=>true ,"message"=>$msg,"requiredDocs"=>array($data)]);
  

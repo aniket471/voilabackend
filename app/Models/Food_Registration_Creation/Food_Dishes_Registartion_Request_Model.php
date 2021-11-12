@@ -10,11 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Validator;
 
+use function PHPUnit\Framework\returnSelf;
+
 class Food_Dishes_Registartion_Request_Model extends Model
 {
     use HasFactory;
 
     const requested_restaurant_dishes = 'requested_restaurant_dishes';
+    const dish_id = 'id';
     const restaurant_id = 'restaurant_id';
     const dish_type = 'dish_type';
     const dish_item = 'dish_item';
@@ -25,6 +28,7 @@ class Food_Dishes_Registartion_Request_Model extends Model
     const restaurant_token_id = 'restaurant_token_id';
 
     const requested_restaurant_dishes_all = self::requested_restaurant_dishes . AppConfig::DOT . AppConfig::STAR;
+    const requested_dish_id = self::requested_restaurant_dishes . AppConfig::DOT . self::dish_id;
     const requested_restaurant_id = self::requested_restaurant_dishes . AppConfig::DOT . self::restaurant_id;
     const requested_dish_type = self::requested_restaurant_dishes . AppConfig::DOT . self::dish_type;
     const requested_dish_item = self::requested_restaurant_dishes . AppConfig::DOT . self::dish_item;
@@ -36,6 +40,7 @@ class Food_Dishes_Registartion_Request_Model extends Model
 
     protected $table = self::requested_restaurant_dishes;
     protected $fillable = [
+        self::dish_id,
         self::restaurant_id,
         self::dish_type,
         self::dish_item,
@@ -46,7 +51,6 @@ class Food_Dishes_Registartion_Request_Model extends Model
         self::restaurant_token_id
     ];
 
-    public $timestamps = false;
 
     //add food list
     public static function addNewDish($request)
@@ -58,15 +62,14 @@ class Food_Dishes_Registartion_Request_Model extends Model
             self::dish_item => 'required',
             self::dish_name => 'required',
             self::dish_description => 'required',
-            self::dish_price =>'required',
+            self::dish_price => 'required',
             self::restaurant_token_id => 'required'
         ]);
-         
+
         if ($validator->fails()) {
 
             return APIResponses::failed_result("Please provide all field , all fields are required");
-        }
-        else{
+        } else {
 
             $dish = new self();
 
@@ -75,14 +78,14 @@ class Food_Dishes_Registartion_Request_Model extends Model
                 $extension = $file->getClientOriginalExtension();
                 $filename = time() . '.' . $extension;
                 $file->move('uploads/dish/', $filename);
-    
-    
+
+
                 $dish[self::dish_photo] = $filename;
             } else {
                 return $request;
                 $dish[self::dish_photo] = '';
             }
-    
+
             $dish[self::restaurant_id] = $request[self::restaurant_id];
             $dish[self::dish_type] = $request[self::dish_type];
             $dish[self::dish_item] = $request[self::dish_item];
@@ -90,12 +93,12 @@ class Food_Dishes_Registartion_Request_Model extends Model
             $dish[self::dish_description] = $request[self::dish_description];
             $dish[self::dish_price] = $request[self::dish_price];
             $dish[self::restaurant_token_id] = $request[self::restaurant_token_id];
-    
-    
-           $result = $dish->save();
-    
-           if($result) return APIResponses::success_result("Dish Added Successfully");
-           else return APIResponses::failed_result("something went wrong please try again");
+
+
+            $result = $dish->save();
+
+            if ($result) return APIResponses::success_result("Dish Added Successfully");
+            else return APIResponses::failed_result("something went wrong please try again");
         }
     }
 
@@ -118,9 +121,172 @@ class Food_Dishes_Registartion_Request_Model extends Model
                 $value["dish_url"] = asset('uploads/dish/' . $value[self::dish_photo]);
             }
             return $dish;
-        }
-        else{
+        } else {
             return APIResponses::failed_result("This restaurant is not registered");
+        }
+    }
+
+
+    //get all veg type dish
+    public static function getAllVegDish($request)
+    {
+        if (!empty($request[self::restaurant_token_id])) {
+
+            $data =  self::select(
+                self::dish_id,
+                self::restaurant_id,
+                self::dish_type,
+                self::dish_item,
+                self::dish_name,
+                self::dish_description,
+                self::dish_price,
+                self::dish_photo,
+            )
+                ->where(self::restaurant_token_id, $request[self::restaurant_token_id])
+                ->whereRaw('LOWER(`dish_type`) LIKE ? ', strtolower($request['filter_type']) . '%')
+                ->get();
+
+            if (!$data->isEmpty()) {
+
+                return APIResponses::success(
+                    "Filter apply successfully",
+                    "filterDish",
+                    $data
+                );
+            } else return APIResponses::failed_result("No dish available on this filter please select another filter");
+        } else return APIResponses::failed_result("Restaurant token mistMatch");
+    }
+
+    //get All dish newest and oldest records
+    public static function getNewestDish($request)
+    {
+
+        if (!empty($request[self::restaurant_token_id])) {
+
+            $data =  self::orderBy('id', 'desc')->take(10)->where(self::restaurant_token_id, $request[self::restaurant_token_id])->get();
+            if (!$data->isEmpty()) {
+
+                return APIResponses::success(
+                    "Filter apply successfully",
+                    "filterDish",
+                    $data
+                );
+            } else return APIResponses::failed_result("No dish available on this filter please select another filter");
+        } else return APIResponses::failed_result("Restaurant token mistMatch");
+    }
+
+    //get all oldest dishes
+    public static function getAllOldestDishes($request)
+    {
+
+        if (!empty($request[self::restaurant_token_id])) {
+
+            $data =  self::orderBy('id', 'asc')->take(10)->where(self::restaurant_token_id, $request[self::restaurant_token_id])->get();
+            if (!$data->isEmpty()) {
+
+                return APIResponses::success(
+                    "Filter apply successfully",
+                    "filterDish",
+                    $data
+                );
+            } else return APIResponses::failed_result("No dish available on this filter please select another filter");
+        } else return APIResponses::failed_result("Restaurant token mistMatch");
+    }
+
+    public static function removeDishFromRestaurant($request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            self::restaurant_id => 'required',
+            self::dish_id => "required",
+            self::restaurant_token_id => 'required'
+        ]);
+
+        if ($validator->fails()) {
+
+            return APIResponses::failed_result("Please provide all field , all fields are required");
+        } else {
+
+            $data[self::dish_id] = $request[self::dish_id];
+
+            $result = self::where(self::dish_id, $request[self::dish_id])->where(self::restaurant_token_id, $request[self::restaurant_token_id])
+                ->delete($data);
+            if ($result) return APIResponses::success_result("Dish remove successfully");
+            else return APIResponses::failed_result("Dish not removed please try again");
+        }
+    }
+
+    //get all dish with doc-type and info
+    public static function getAllDocTypeAndInfo($request)
+    {
+
+        $data = RequiredDishDocsModel::getDishRequiredDoc();
+        $dish = self::all()->where(self::dish_id, $request[self::dish_id]);
+        return $dish;
+        foreach ($data as $key => $value) {
+        }
+    }
+
+    //update the dish list
+    public static function updateDishInfo($request)
+    {
+        $validator = Validator::make($request->all(), [
+            self::restaurant_id => 'required',
+            self::dish_type => 'required',
+            self::dish_item => 'required',
+            self::dish_name => 'required',
+            self::dish_description => 'required',
+            self::dish_price => 'required',
+            self::restaurant_token_id => 'required',
+            self::dish_id => 'required'
+        ]);
+
+        if ($validator->fails()) {
+
+            return APIResponses::failed_result("Please provide all field , all fields are required");
+        } else {
+
+            //  $dish = new self();
+
+            if ($request->hasfile('image')) {
+                $file = $request->file('image');
+
+                $extension = $file->getClientOriginalExtension();
+                $filename = time() . '.' . $extension;
+                $file->move('uploads/dish/', $filename);
+
+
+                $dish[self::dish_photo] = $filename;
+                $dish[self::restaurant_id] = $request[self::restaurant_id];
+                $dish[self::dish_type] = $request[self::dish_type];
+                $dish[self::dish_item] = $request[self::dish_item];
+                $dish[self::dish_name] = $request[self::dish_name];
+                $dish[self::dish_description] = $request[self::dish_description];
+                $dish[self::dish_price] = $request[self::dish_price];
+                $dish[self::restaurant_token_id] = $request[self::restaurant_token_id];
+    
+    
+                $result = self::where('id', $request[self::dish_id])->update($dish);
+                if ($result) return APIResponses::success_result("Dish Added Successfully");
+                else return APIResponses::failed_result("something went wrong please try again");
+            } 
+            else {
+
+                $dish[self::restaurant_id] = $request[self::restaurant_id];
+                $dish[self::dish_type] = $request[self::dish_type];
+                $dish[self::dish_item] = $request[self::dish_item];
+                $dish[self::dish_name] = $request[self::dish_name];
+                $dish[self::dish_description] = $request[self::dish_description];
+                $dish[self::dish_price] = $request[self::dish_price];
+                $dish[self::restaurant_token_id] = $request[self::restaurant_token_id];
+    
+    
+                $result = self::where('id', $request[self::dish_id])->update($dish);
+                if ($result) return APIResponses::success_result("Dish Added Successfully");
+                else return APIResponses::failed_result("something went wrong please try again");
+            }
+
+           
         }
     }
 }

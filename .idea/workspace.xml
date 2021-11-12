@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="8b3436e8-784d-4d50-bef9-05e6b8c65198" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/runConfigurations.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Voila.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Voila.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/php.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/phpunit.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/Http/Controllers/DriverRegistrationRequiredDocsModel.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/Http/Controllers/Food_Registartion_Creation/FoodRegistrationController.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Http/Controllers/Food_Registartion_Creation/FoodRegistrationController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/Http/Controllers/RegistrationProcessLoginModel.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Http/Controllers/RegistrationProcessLoginModel.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/Models/DriverRegistartionRequestCreation/DriverRegistrationRequestModel.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Models/DriverRegistartionRequestCreation/DriverRegistrationRequestModel.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/Models/Food_Registration_Creation/Food_Dishes_Registartion_Request_Model.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Models/Food_Registration_Creation/Food_Dishes_Registartion_Request_Model.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/Models/Food_Registration_Creation/Restaurant_Registartion_RequestModel.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Models/Food_Registration_Creation/Restaurant_Registartion_RequestModel.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/Models/Required_Docs_Creation/DriverRegistrationRequiredDocsModel.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Models/Required_Docs_Creation/DriverRegistrationRequiredDocsModel.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/Models/Required_Docs_Creation/DriverVehicleRequiredDocsModel.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Models/Required_Docs_Creation/DriverVehicleRequiredDocsModel.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/Models/Rider/RiderLogin.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Models/Rider/RiderLogin.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/composer.json" beforeDir="false" afterPath="$PROJECT_DIR$/composer.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/composer.lock" beforeDir="false" afterPath="$PROJECT_DIR$/composer.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/app.php" beforeDir="false" afterPath="$PROJECT_DIR$/config/app.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/routes/api.php" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="PackageJsonUpdateNotifier">
+    <dismissed value="$PROJECT_DIR$/package.json" />
+  </component>
+  <component name="ProjectId" id="1yREOh0A6Qfv5DFuWz5zYq6Dhii" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="android.sdk.path" value="$USER_HOME$/AppData/Local/Android/Sdk" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_package_manager_path" value="npm" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="8b3436e8-784d-4d50-bef9-05e6b8c65198" name="Changes" comment="" />
+      <created>1632205973980</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1632205973980</updated>
+      <workItem from="1632205974497" duration="510000" />
+      <workItem from="1632206574453" duration="913000" />
+      <workItem from="1632902713182" duration="15000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+</project>
