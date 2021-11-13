@@ -299,12 +299,10 @@ class Restaurant_Registartion_RequestModel extends Model
         if (self::where(self::request_token, $request[self::request_token])->first()) {
 
             $process = self::select(self::status)->where(self::request_token, $request[self::request_token])->get();
-
             if (!empty($process[0][self::status])) {
 
                 if ($process[0][self::status] === "1") {
-                    
-                    return self::getAllRestaurantDoceTypeText();
+                    return self::getAllRestaurantDoceTypeText($request);
                 } elseif ($process[0][self::status] === "2") {
 
                     return self::restaurantProfileDetails($request);
@@ -387,11 +385,40 @@ class Restaurant_Registartion_RequestModel extends Model
     }
 
     //get all restaurant docs type text
-    public static function getAllRestaurantDoceTypeText()
+    public static function getAllRestaurantDoceTypeText($request)
     {
-
-        $textTypeDocs = RestaurantDetailsRequiredDocsModel::getTextTypeDocs();
-        return response()->json([$response = "result" => true, "message" => "Owner Details Found", "processCompleteStatus" => "1", "needToProcessComplete" => $textTypeDocs]);
+        $owner_details = self::select(self::owner_name,
+                                      self::owner_contact_no,
+                                      self::owner_email,
+                                      self::owner_current_address,
+                                      self::owner_permanent_address,
+                                      self::restaurant_name
+                                      )->where(self::request_token,$request[self::request_token])->get();
+        if(!$owner_details->isEmpty()){
+            
+            if(!empty($owner_details[0][self::owner_name])){
+                
+                if(!empty($owner_details[0][self::restaurant_name])){
+                    $update_state[self::status] = 3;
+                    $update_state[self::account_verification_status] = 3;
+                    $vehicleDetailsResult = self::where(self::request_token, $request[self::request_token])->update($update_state);
+                    $cong_msg = "Your account has been successfully created.Your account will be activate in 72 hours.";
+                    return response()->json([$response = "result" => true, "message" => "Restaurant Registration Completed", "processCompleteStatus" => "4", "accountCreated" => $cong_msg]);
+                }
+                else{
+                    $textTypeDocs = RestaurantDetailsRequiredDocsModel::getTextTypeDocs();
+                    return response()->json([$response = "result" => true, "message" => "Owner Details Found", "processCompleteStatus" => "1", "needToProcessComplete" => $textTypeDocs]);
+                }
+            }
+            else{
+                $ownerRequiredDocs = self::getOwnerRequiredDocs();
+                return response()->json([$response = "result" => true, "message" => "Please fill the all information", "processComplete" => "0","needToProcessComplete"=>$ownerRequiredDocs]);
+            }
+        }
+        else{
+            $ownerRequiredDocs = self::getOwnerRequiredDocs();
+            return response()->json([$response = "result" => true, "message" => "Please fill the all information", "processComplete" => "0","needToProcessComplete"=>$ownerRequiredDocs]);
+        } 
     }
 
 
