@@ -50,16 +50,6 @@ return [
 	        'driver' => 'token',
 	        'provider' => 'app_api_users',
         ],
-
-        'app_internal'=>[
-            'driver'=>'token',
-            'provider'=> 'app_internal_users',
-        ],
-
-        'app_internal_partner'=>[
-            'driver' => 'token',
-            'provider' => 'app_internal_partner',
-        ],
     ],
 
     /*
@@ -87,15 +77,6 @@ return [
         'app_api_users' => [
 	        'driver' => 'eloquent',
 	        'model' => \App\Models\AppApiUsers::class,
-        ],
-
-        'app_internal_users' =>[
-            'driver' => 'eloquent',
-            'model' => \App\Models\Common\AppIntenalApiUsers::class,
-        ],
-        'app_internal_partner' =>[
-            'driver' => 'eloquent',
-            'model' => \App\Models\Common\AppInternalPartnerApiUsers::class,
         ],
 
         // 'users' => [

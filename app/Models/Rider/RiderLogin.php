@@ -2,12 +2,9 @@
 
 namespace App\Models\Rider;
 
-use App\Models\Common\APIResponses;
 use App\Models\Common\AppConfig;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
-
 
 class RiderLogin extends Model
 {
@@ -40,118 +37,43 @@ class RiderLogin extends Model
 
     public static function riderLogin($request)
     {
-        $mobile_number = $request[self::mobile_number];
-        return self::sendOtpToRider($mobile_number);
-    }
 
-    public static function sendOtpToRider($mobile_number){
-        
-        $number = $mobile_number;
-        $otp = self::generateTheOtp();
+        $mobile_number = $request['mobile'];
 
-        $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => "http://2factor.in/API/V1/06fe377d-7a20-11ea-9fa5-0200cd936042/SMS/{$number}/{$otp}",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "GET",
-            CURLOPT_POSTFIELDS => "",
-            CURLOPT_HTTPHEADER => array(
-                "content-type: application/x-www-form-urlencoded"
-            ),
-        ));
-
-        $response =(curl_exec($curl));
-    
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            echo "cURL Error #:" . $err;
-        } else {
-          //  echo $response;
-          return $response;
-        }
-    }
-
-    public static function generateTheOtp(){
-
-        $generator = "1357902468";
-
-        $result = "";
-  
-        for ($i = 1; $i <= 4; $i++) {
-            $result .= substr($generator, (rand()%(strlen($generator))), 1);
-        }
-        return $result;
-    }
-
-    public static function verifyTheOtp($request){
-        $session_id = $request['session_id'];
-        $otp = $request['otp'];
-        $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => "http://2factor.in/API/V1/06fe377d-7a20-11ea-9fa5-0200cd936042/SMS/VERIFY/{$session_id}/{$otp}",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "GET",
-            CURLOPT_POSTFIELDS => "",
-            CURLOPT_HTTPHEADER => array(
-                "content-type: application/x-www-form-urlencoded"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            return "cURL Error #:" . $err;
-        } else {
-           // return $response;
-           return self::createAccountToRider($request);
-        }
-    }
-
-    public static function createAccountToRider($request){
-
-          if (self::where(self::mobile_number, $request[self::mobile_number])->first()) {
+        if (self::where(self::mobile_number, $request['mobile'])->first()) {
             $data = self::select(self::mobile_number, self::id, self::rider_name)
-                ->where(self::mobile_number, $request[self::mobile_number])
+                ->where(self::mobile_number, $mobile_number)
                 ->get();
             return response()->json([$response = "result" => true, 'message' => "This number is already used", "data" => $data]);
-        } 
-        else {
+        } else {
             $rider_login = new self();
-            $rider_login[self::mobile_number] = $request[self::mobile_number];
-            $rider_login[self::rider_name] = $request[self::rider_name];
+            $rider_login[self::mobile_number] = $request['mobile'];
+            $rider_login[self::rider_name] = $request['name'];
 
-            $var = Str::random(55);
+            // Available alpha caracters
+            $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-            $rider_login[self::api_token] = $var;
+            // generate a pin based on 2 * 7 digits + a random character
+            $pin = mt_rand(1000000, 9999999)
+                . mt_rand(1000000, 9999999)
+                . $characters[rand(0, strlen($characters) - 1)];
+
+            // shuffle the result
+            $string = str_shuffle($pin);
+
+            $rider_login[self::api_token] = $string;
+
             $resultChecker = $rider_login->save();
 
             if($resultChecker){
 
                 $data =self::select(self::mobile_number,self::rider_name,self::id)
-                            ->where(self::mobile_number,$request[self::mobile_number])
+                            ->where(self::mobile_number,$mobile_number)
                             ->get();
-              //  return response()->json([$response = "result"=>true,'message'=>"Voila account created","data"=>$data]);
-              return APIResponses::success_result_with_data("Voila account created successfully",$data);
+                return response()->json([$response = "result"=>true,'message'=>"Voila account created","data"=>$data]);
             }
             else{
-             //   return response()->json([$response = "result"=>false, "message"=>"Voila account created failed try again"]);
-             return APIResponses::failed_result("Voila account created failed");
+                return response()->json([$response = "result"=>false, "message"=>"Voila account created failed try again"]);
             }
         }
     }
