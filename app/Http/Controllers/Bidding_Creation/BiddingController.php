@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 
 class BiddingController extends Controller
 {
+    //if driver apply for lowest bidding rate then check drivers rate driver site
     public static function driverLowestPrice(Request $request){
         return Bidding::driverLowestPrice($request);
     }

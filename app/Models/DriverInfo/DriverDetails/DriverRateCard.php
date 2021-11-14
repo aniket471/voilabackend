@@ -2,10 +2,15 @@
 
 namespace App\Models\DriverInfo\DriverDetails;
 
+use App\Models\Common\APIResponses;
 use App\Models\Common\AppConfig;
+use App\Models\DriverRegistartionRequestCreation\DriverRegistrationRequestModel;
+use Facade\FlareClient\Http\Response;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use phpDocumentor\Reflection\PseudoTypes\True_;
 
 class DriverRateCard extends Model
 {
@@ -36,6 +41,8 @@ class DriverRateCard extends Model
         self::canceled_trip_limit
     ];
 
+    public $timestamps = false;
+
 
     //check driver enable to cancēled the trip
     public static function canceledTripByDriver($request)
@@ -57,14 +64,107 @@ class DriverRateCard extends Model
 
             if ($request[self::canceled_trips] < $value[self::canceled_trip_limit]) {
 
-                $updateTheLimit = DB::update('update driver_rate_card set canceled_trips=? where driver_id=?',[$request[self::canceled_trips]+1,$request[self::driver_id]]);
-                if($updateTheLimit)
-                return "Enable";
+                $updateTheLimit = DB::update('update driver_rate_card set canceled_trips=? where driver_id=?', [$request[self::canceled_trips] + 1, $request[self::driver_id]]);
+                if ($updateTheLimit)
+                    return "Enable";
                 else
-                return "Trip not update";
-            } 
-            else {
+                    return "Trip not update";
+            } else {
                 return "Disable";
+            }
+        }
+    }
+
+    public static function createCustomeRateCard($request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            self::driver_id => 'required',
+            self::min_rate =>  'required',
+            self::max_rate =>  'required',
+
+        ]);
+
+        if ($validator->fails()) {
+
+            return APIResponses::failed_result("Oops custome rate card  not generated please try again...");
+        } else {
+
+            if (self::where(self::driver_id, $request[self::driver_id])->first()) {
+
+
+                $updateData[self::min_rate] = $request[self::min_rate];
+                $updateData[self::max_rate] = $request[self::max_rate];
+
+                $result = self::where(self::driver_id, $request[self::driver_id])->update($updateData);
+
+                if ($result) {
+                    return APIResponses::success_result("Custome rate card created successfully");
+                } else {
+                    return APIResponses::failed_result("Failed to create a custome rate card please try again...");
+                }
+            } else {
+
+                $data = new self();
+
+                $data[self::driver_id] = $request[self::driver_id];
+                $data[self::min_rate] = $request[self::min_rate];
+                $data[self::max_rate] = $request[self::max_rate];
+                $data[self::system_rate] = 30;
+                $data[self::canceled_trips] = 0;
+                $data[self::canceled_trip_limit] = 30;
+
+                $result = $data->save();
+
+                if ($result) {
+                    return APIResponses::success_result("Custome rate card created successfully");
+                } else {
+                    return APIResponses::failed_result("Failed to create a custome rate card please try again...");
+                }
+            }
+        }
+    }
+
+    public static function getDriverVehicleInfo($request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            self::driver_id => 'required'
+        ]);
+
+        if ($validator->fails()) {
+
+            return APIResponses::failed_result("Oops custome rate card  not generated please try again...");
+        } else {
+
+            if (self::where(self::driver_id, $request[self::driver_id])->first()) {
+
+                if(DriverRegistrationRequestModel::where(DriverRegistrationRequestModel::request_token,$request['request_token'])->first()){
+
+                    $data = DriverRegistrationRequestModel::select(
+                        DriverRegistrationRequestModel::vehicle_type,
+                        DriverRegistrationRequestModel::vehicle_RTO_registration_number,
+                    )
+                        ->where(DriverRegistrationRequestModel::request_token, $request['request_token'])
+                        ->get();
+    
+                    $rateCard = self::select(self::min_rate,self::max_rate)->where(self::driver_id,$request[self::driver_id])->get();
+                    
+                    return response()->json(["result" => true, "message" => "Vehicle Info find", "isRateCardSet" => true, "vehicleInfoRate" => $data, "oldRates"=>$rateCard]);
+                }
+                else{
+                    return APIResponses::failed_result("Failed to add custome rate card please try again");
+                }
+                
+            } else {
+
+                $data = DriverRegistrationRequestModel::select(
+                    DriverRegistrationRequestModel::vehicle_type,
+                    DriverRegistrationRequestModel::vehicle_RTO_registration_number,
+                )
+                    ->where(DriverRegistrationRequestModel::request_token)
+                    ->get();
+                return response()->json(["result" => true, "message" => "Vehicle Info find", "isRateCardSet" => false, "vehicleInfoRate" => $data]);
             }
         }
     }

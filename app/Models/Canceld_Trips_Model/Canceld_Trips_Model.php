@@ -28,6 +28,7 @@ class Canceld_Trips_Model extends Model
     const rider_dest_long = 'rider_dest_long';
     const rider_pickup_address = 'rider_pickup_address';
     const rider_drop_address = 'rider_drop_address';
+    const trip_status_id = 'trip_status_id';
 
     const canceled_trips_all = self::canceled_trips . AppConfig::DOT . AppConfig::STAR;
     const canceled_trips_rider_id = self::canceled_trips . AppConfig::DOT . self::rider_id;
@@ -43,7 +44,7 @@ class Canceld_Trips_Model extends Model
     const canceled_trips_rider_dest_long = self::canceled_trips . AppConfig::DOT . self::rider_dest_long;
     const canceled_trips_rider_pickup_address = self::canceled_trips . AppConfig::DOT . self::rider_pickup_address;
     const canceled_trips_rider_drop_address = self::canceled_trips . AppConfig::DOT . self::rider_drop_address;
-
+    const canceled_trips_trip_status_id = self::canceled_trips . AppConfig::DOT  . self::trip_status_id;
 
     protected $table = self::canceled_trips;
     protected $fillable = [
@@ -59,7 +60,8 @@ class Canceld_Trips_Model extends Model
         self::rider_dest_lat,
         self::rider_dest_long,
         self::rider_pickup_address,
-        self::rider_drop_address
+        self::rider_drop_address,
+        self::trip_status_id,
     ];
 
     public $timestamps = false;
@@ -67,24 +69,19 @@ class Canceld_Trips_Model extends Model
     //canceled trip
     public static function canceledTrip($request)
     {
-        $canceledTrip = new self();
+        if ($request[self::canceled_by] === $request[self::driver_id]) {
+            $checkTripEnableOrNot =  DriverRateCard::canceledTripByDriver($request);
 
-        $data = $request['request'];
-        $arr = json_decode($data, true);
-
-        if ($arr[self::canceled_by] === $arr[self::driver_id]) {
-            $checkTripEnableOrNot =  DriverRateCard::canceledTripByDriver($arr);
-
-            if ($checkTripEnableOrNot[0]["check"] === "Enable") {
-                return self::canceledTripByDriver($arr);
-            } elseif ($checkTripEnableOrNot[0]["check"] === "Trip not update") {
+            if ( isset($checkTripEnableOrNot[0]["check"]) === "Enable") {
+                return self::canceledTripByDriver($request);
+            } elseif (isset($checkTripEnableOrNot[0]["check"]) === "Trip not update") {
                 return APIResponses::failed_result("Voila not update");
-            } elseif ($checkTripEnableOrNot[0]["check"] === "Disable") {
+            } elseif (isset($checkTripEnableOrNot[0]["check"]) === "Disable") {
                 return APIResponses::failed_result("Voila trip canceled Disable");
             }
         }
          else {
-            return self::canceledTripByDriver($arr);
+            return self::canceledTripByDriver($request);
         }
     }
 
@@ -103,10 +100,12 @@ class Canceld_Trips_Model extends Model
         $canceledTrip[self::rider_dest_long] = $request[self::rider_dest_long] ?? '';
         $canceledTrip[self::rider_pickup_address] = $request[self::rider_pickup_address] ?? '';
         $canceledTrip[self::rider_drop_address] = $request[self::rider_drop_address] ?? '';
+        $canceledTrip[self::trip_status_id] = 8;
 
          $result = $canceledTrip->save();
-        if($result)
-        return APIResponses::success_result("Trip Canceled Successfully");
+        if($result){
+            return APIResponses::success_result("Trip Canceled Successfully");
+        }
         else
         return APIResponses::failed_result("Trip not canceled");
     }

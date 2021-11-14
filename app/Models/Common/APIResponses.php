@@ -36,7 +36,18 @@ class APIResponses extends Model
     public static function success_result_with_data($message,$data){
         return ["result"=>true , "message"=>$message,"resultData"=>$data];
     }
-    public static function failed_result_with_data($message,$data,$dataMessage){
-        return ["result"=>false , "message"=>$message,$dataMessage=>$data];
+    public static function failed_result_with_data($message,$data){
+        return ["result"=>false , "message"=>$message,"resultData"=>$data];
+    }
+    
+    public static function success_result_with_code($message,$code){
+        return ["result"=>true,"message"=>$message,"resultCode"=>$code];
+    }
+
+    public static function failed_result_with_code($message,$code){
+        return ["result"=>false,"message"=>$message,"resultCode"=>$code];
+    }
+ public static function success($message,$dataMSG,$data){
+        return ["result"=>true,"message"=>$message,$dataMSG=>$data];
     }
 }

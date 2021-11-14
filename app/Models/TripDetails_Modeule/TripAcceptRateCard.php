@@ -40,6 +40,10 @@ class TripAcceptRateCard extends Model
     public $timestamps = false;
 
     public static function acceptBookingWithRateCard($request){
+
+        $data = $request->input('data');
+        $arr = json_decode($data,true);
+
        $accept_rate_card = new self();
        if(is_null($request['rider_id']) && is_null($request['trip_id']) && is_null($request['accepted_rate'])){
            return response()->json([$response = "result"=>false,"message"=>"id missing"]);
@@ -47,9 +51,9 @@ class TripAcceptRateCard extends Model
        elseif((is_null($request['booking_status'])))
        return APIResponses::failed_result("booking_status missing");
        
-       $accept_rate_card[self::driver_id] = $request['driver_id'];
-       $accept_rate_card[self::rider_id] = $request['rider_id'];
-       $accept_rate_card[self::booking_status] = $request['booking_status'];
+       $accept_rate_card[self::driver_id] = $arr[self::driver_id];
+       $accept_rate_card[self::rider_id] = $arr[self::rider_id];
+       $accept_rate_card[self::booking_status] = $arr[self::booking_status];
        $accept_rate_card[self::rate_card_rate] = $request['accepted_rate'];
        $accept_rate_card[self::trip_id] = $request['trip_id'];
 

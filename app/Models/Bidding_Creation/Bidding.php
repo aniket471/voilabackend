@@ -4,8 +4,10 @@ namespace App\Models\Bidding_Creation;
 
 use App\Models\Common\APIResponses;
 use App\Models\Common\AppConfig;
+use App\Models\FeedBackModule\FeedBackModel;
 use App\Models\DriverInfo\DriverDetails\DriverDetails;
 use App\Models\DriverInfo\DriverDetails\DriverRateCard;
+use App\Models\DriverInfo\DriverLocation\DriverLocation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -78,14 +80,14 @@ class Bidding extends Model
             $value->live_bidding_rate = $MinimumRate[] = $value->live_bidding_rate;
             $value->minRate = $mina = min($MinimumRate);
             $value->maxRate = $max = max($MinimumRate);
-
-            
+            return $mina;  
         }
-        return $mina;
+        
         //  return response()->json(array([$response = "result"=>true,"message"=>"lowest rate available","bidding_rate"=>array($mina)]));
        
     }
 
+    //if driver apply for lowest bidding rate then check drivers rate driver site
     public static function driverLowestPrice($request)
     {
 
@@ -108,10 +110,11 @@ class Bidding extends Model
                     }
                     else {
                         $UpdateBiddingRates = DB::update('update bidding_rate set live_bidding_rate=? where driver_id=?', [$value['min_rate'], $driver_id]);
-                        return response()->json([$response = "result" => false, "message" => "live rate changed","currentRate"=>$value['min_rate']]);
+                        return response()->json([$response = "result" => false, "message" => "live rate changed","currentRate"=>strval($value['min_rate'])]);
                     }
                 }
-            } else {
+            } 
+            else {
 
                 $DriverLowestRate = DriverRateCard::select(DriverRateCard::driver_min_rate)
                                        ->where(DriverRateCard::driver_driver_id,$driver_id)
@@ -149,28 +152,62 @@ class Bidding extends Model
         }
     }
 
+    //get drivers who accept the trip request its run live
     public static function getDriversWithBiddingCurrentPrice($request){
+    
+    
 
+     
         $GetNewDriver = self::select(self::driver_id,self::trip_id,self::live_bidding_rate)
-                            ->where(self::driver_status,1)
+                             ->where(self::driver_status,1)
                             ->where(self::rider_id,$request['rider_id'])
                             ->get();
+           // $data = json_decode($GetNewDriver,true);
+           // return $data;  
+   
+             $driverDetails =  array();
+             $DriverRating = array();            
+            foreach($GetNewDriver as $key=>$value){
+      // return $value["trip_id"];
+                $value->driverDetails = DriverDetails::select(DriverDetails::driver_name,DriverDetails::driver_phone_number,DriverDetails::driver_id,
+                                                             DriverDetails::driver_vehicle_color,DriverDetails::driver_vehicle_model,
+                                                             DriverDetails::driver_vehicle_reg_number,
+                                                             DriverDetails::driver_vehicle_type,
+                                                             DriverLocation::driver_current_lat,
+                                                             DriverLocation::driver_current_long,
+                                                             DriverLocation::driver_current_address
+                                                             )
+                                                             ->join(DriverLocation::driver_location,DriverLocation::driver_id,DriverDetails::driver_id)
+                                                     ->where(DriverDetails::driver_id,$value->driver_id)
+                                                     ->get();
+
+                                                     
+                $value->driver_feedback =array(FeedBackModel::getDriverRating($value['driver_id']));        
+              // $value->driver_details = array_merge($driverDetails->toArray(),$DriverRating);                              
+            }  
+              
+       
 
             $Data = DB::update('update bidding_rate set driver_status = ? where rider_id = ?',[0,$request['rider_id']]);
 
             if($Data)
             return response()->json([$response = "result"=>true,'message'=>"new driver find","driver"=>$GetNewDriver]);
-                       
+            else            
+             return response()->json([$response = "result"=>false,'message'=>"new driver not  find"]);
+             
     }
 
+     //for refresh the live bidding rate
     public static function refreshTheBiddingPrice($request){
-        $driver_id =[$request[self::driver_id]];
         $rider_id = [$request[self::rider_id]];
-
+        
         $MinimumRate = array();
 
         //get all bidding live rates
-        $biddingRate = self::select(self::live_bidding_rate)->where(self::rider_id,$rider_id)->get();
+        $biddingRate = self::select(self::live_bidding_rate)
+                            ->where(self::rider_id,$rider_id)
+                            ->where(self::trip_id,$request[self::trip_id])
+                            ->get();
 
         foreach($biddingRate as $key=>$value){
             //get minimum rate from table
@@ -179,5 +216,24 @@ class Bidding extends Model
         }
 
         return response()->json([$response = "result"=>true,"message"=>"new rate","minRate"=>$mina]);
+    }
+    //check the trip status its temporary work
+    public static function checkTripStatus($request)
+    {
+        if (self::where(self::rider_id, $request[self::rider_id])->where(self::driver_id, $request[self::driver_id])
+            ->where(self::trip_status, 7)->first()
+        ) {
+            return APIResponses::success_result("Ride end successfully");
+        } else {
+            return APIResponses::failed_result("Ride not completed");
+        }
+    }
+
+   //remove bidding data when trip is going to end
+    public static function removeBidding($request){
+        $driver_id = $request[self::driver_id];
+        $rider_id = $request[self::rider_id];
+
+        DB::delete('delete from bidding_rate where rider_id=?,driver_id=?',[$rider_id,$driver_id]);
     }
 }

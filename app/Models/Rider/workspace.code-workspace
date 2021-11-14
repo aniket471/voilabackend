@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "..\\..\\..\\.."
+		},
+		{
+			"name": "voila-api-module",
+			"path": "..\\..\\..\\..\\..\\voila-api-module"
+		}
+	],
+	"settings": {}
+}
